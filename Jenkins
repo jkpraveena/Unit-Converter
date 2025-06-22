@@ -1,0 +1,49 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = 'yourdockerhub/unit-converter'
+    }
+
+    tools {
+        maven 'Maven 3'       // Preconfigured in Jenkins global settings
+        jdk 'Java 11'         // Preconfigured in Jenkins global settings
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/yourname/unit-converter.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    docker.withRegistry('', 'dockerhub-credentials') {
+                        def app = docker.build("${IMAGE_NAME}")
+                        app.push("latest")
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            junit '**/target/surefire-reports/*.xml'
+        }
+    }
+}
